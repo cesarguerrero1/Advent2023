@@ -36,31 +36,30 @@ int main(){
     std::string num;
 
     //We need a way to keep track of the first and and last numbers so we can short circuit the search
-    int firstPos = -1;
-    int lastPos = -1;
+    int firstPos;
+    int lastPos;
 
     //We need a vector to hold our generated numbers
     int sum = 0;
-    int count = 0;
 
     while(!file.eof()){
         std::getline(file, line);
-        std::cout << "Line: " << line << std::endl;
         int lineSize = line.size();
-        std::vector<int> positionAndValue;
+        std::vector<int> wordNumResponse; //This is used to store the response from the get_word_num function
         int position;
 
         //First check for first occurrence of raw integers
         position = get_raw_num(line, 0);
         if(position != -1){
             if(position == 0){
+                //Since we found a raw integer at the beginning of the line we can short-circuit the search
                 num += line[position];
             }else{
-                //We can't short-circuit the search so we need to check for the first occurrence of a word num
+                //Store the position of the first raw number occurrence so we can now check if it needs to be replaced by a word number
                 firstPos = position;
-                positionAndValue = get_word_num(line, 0);
-                if(positionAndValue[1] != -1 && positionAndValue[1] < firstPos){
-                    num += std::to_string(positionAndValue[0]);
+                wordNumResponse = get_word_num(line, 0);
+                if(wordNumResponse[0] != -1 && wordNumResponse[0] < firstPos){
+                    num += std::to_string(wordNumResponse[1]);
                 }else{
                     num += line[firstPos];
                 }
@@ -69,6 +68,7 @@ int main(){
             //We now shift to the last occurrence
             position = get_raw_num(line, 1);
             if(position == lineSize-1){
+                //We found a raw integer at the very end of the line therefore we can short-circuit the search
                 num += line[position];
                 sum += std::stoi(num);
                 num.clear();
@@ -76,9 +76,9 @@ int main(){
             }else{
                 //We need to check for the last occurrence of a word num as it could be after the last raw integer
                 lastPos = position;
-                positionAndValue = get_word_num(line, 1);
-                if(positionAndValue[1] != -1 && positionAndValue[1] > lastPos){
-                    num += std::to_string(positionAndValue[0]);
+                wordNumResponse = get_word_num(line, 1);
+                if(wordNumResponse[0] != -1 && wordNumResponse[0] > lastPos){
+                    num += std::to_string(wordNumResponse[1]);
                 }else{
                     num += line[lastPos];
                 }
@@ -88,11 +88,11 @@ int main(){
             }
         }else{
             //There are no raw integers so we only need to check for word numbers
-            positionAndValue = get_word_num(line, 0);
-            if(positionAndValue[1] != -1){
+            wordNumResponse = get_word_num(line, 0);
+            if(wordNumResponse[0] != -1){
                 //There are word numbers so just add the first and last one
-                num += std::to_string(positionAndValue[0]);
-                num += std::to_string(get_word_num(line, 1)[0]);
+                num += std::to_string(wordNumResponse[1]);
+                num += std::to_string(get_word_num(line, 1)[1]);
                 sum += std::stoi(num);
                 num.clear();
             }
@@ -126,7 +126,7 @@ int get_raw_num(std::string line, int mode){
     }
 
     //Now we just need to check if we found a match
-    if(position != line.npos){
+    if(position != std::string::npos){
         return position;
     }else{
         return -1;
@@ -144,70 +144,67 @@ std::vector<int> get_word_num(std::string line, int mode){
 
     //To solve Part 2 we need to be able to analyze the words
     std::vector<std::string> word_nums = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
-    int optimal = -1;
-    int position;
-    int optimalChangeIndex; //This will be used to keep track of which word number was used to find the optimal position
+
+    int optimalPosition = -1;
+    int currentPosition;
+    int changeIndex = -1; //This will be used to keep track of which word number was used to find the optimal position
+
     for(int i = 0; i < word_nums.size(); i++){
         if(mode == 0){
-            position = line.find(word_nums[i]);
-            std::cout << "First Position: " << position << std::endl;
+            //First occurrence
+            currentPosition = line.find(word_nums[i]);
         }else{
-            position = line.rfind(word_nums[i]);
-            std::cout << "Last Position: " << position << std::endl;
+            //Last occurrence
+            currentPosition = line.rfind(word_nums[i]);
         }
         //Check that we found something and see if it now optimal
-        if(position == std::string::npos){
-            std::cout << "Not found\n";
+        if(currentPosition == std::string::npos){
             continue;
         }
 
         //If we are on our first iteration then we need to set optimal to the first position
-        if(optimal == -1){
-            optimal = position;
-            optimalChangeIndex = i;
+        if(optimalPosition == -1){
+            optimalPosition = currentPosition;
+            changeIndex = i;
             continue;
         }
 
         //Based on the mode we need to check if the current position is optimal
         if(mode == 0){
-            if(position < optimal){
-                //We found a better position
-                optimal = position;
-                optimalChangeIndex = i;
+            if(currentPosition < optimalPosition){
+                optimalPosition = currentPosition;
+                changeIndex = i;
             }
         }else{
-            if(position > optimal){
-                optimal = position;
-                optimalChangeIndex = i;
+            if(currentPosition > optimalPosition){
+                optimalPosition = currentPosition;
+                changeIndex = i;
             }
         }
     }
 
-    if(optimal == -1){
-        return {-1, -1};
-    }
-    std::cout << "Optimal: " << optimal << std::endl;
-    switch(optimalChangeIndex){
+    //Since we are working with numbers we need to convert the word number to an integer
+    switch(changeIndex){
         case 0:
-            return {0, optimal};
+            return {optimalPosition, 0};
         case 1:
-            return {1, optimal};
+            return {optimalPosition, 1};
         case 2:
-            return {2, optimal};
+            return {optimalPosition, 2};
         case 3:
-            return {3, optimal};
+            return {optimalPosition, 3};
         case 4:
-            return {4, optimal};
+            return {optimalPosition, 4};
         case 5:
-            return {5, optimal};
+            return {optimalPosition, 5};
         case 6:
-            return {6, optimal};
+            return {optimalPosition, 6};
         case 7:
-            return {7, optimal};
+            return {optimalPosition, 7};
         case 8:
-            return {8, optimal};
+            return {optimalPosition, 8};            
         case 9:
-            return {9, optimal};
+            return {optimalPosition, 9};
         default:
             return {-1, -1};
     }
