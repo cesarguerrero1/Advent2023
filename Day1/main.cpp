@@ -100,6 +100,9 @@ int main(){
 
     }
 
+    //Always close your files
+    file.close();
+
     //We now just need to sum up the numbers
     std::cout << "Sum: " << sum << std::endl;
     return 0;
