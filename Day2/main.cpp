@@ -2,7 +2,7 @@
  * Cesar Guerrero
  * 01/09/2024
  * 
- * Day 2: Advent Calendar 2024
+ * Day 2: Advent Calendar 2023
  * 
  * NOTE: To solve Part 2 rather than refactor the program or start all over, I just reused the same code from verifySet and added a few lines to analyzeSet
 */
