@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Day2)
 
 #Enable support for a specific C++ Standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 #This tells CMake to create an executable with the following name based on the specified source files
