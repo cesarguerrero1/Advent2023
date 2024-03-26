@@ -53,7 +53,11 @@ int main(){
 }
 
 
-
+/**
+ * This runs the solution for part one
+ * @param {std::ifstream&} file - The file to be read
+ * @return {int} - 0 if successful
+*/
 int solutionPartOne(std::ifstream& file){
 
     //These are the set of cubes that each game is played with
@@ -100,6 +104,12 @@ int solutionPartOne(std::ifstream& file){
     return 0;
 }
 
+
+/**
+ * This runs the solution for part two
+ * @param {std::ifstream&} file - The file to be read
+ * @return {int} - 0 if successful
+*/
 int solutionPartTwo(std::ifstream& file){
 
     std::unordered_map<std::string, int> minimumCubes = {
