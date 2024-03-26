@@ -1,100 +1,180 @@
 /**
  * Cesar Guerrero
- * 01/23/24
+ * 03/26/24
  * 
- * Advent of Code 2023: Day 4
+ * Advent of Code 2023: Day 4 - Scratch Card
  * 
 */
+
 
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <map>
-
-//We need to open the file
-std::string scratchFile = "scratch-data.txt";
-
-int pointSum = 0;
+#include <unordered_set>
+#include <unordered_map>
+#include <regex>
 
 //Function Prototypes
-void analyzeCard(const std::string&);
+int solutionPartOne(std::ifstream& file);
+int solutionPartTwo(std::ifstream& file);
+void analyzeCard(std::string& card, int& sum);
 
+
+/**
+ * Entry point into the program
+ * @return 0 if the program ran successfully
+*/
 int main(){
 
     //Open the file
-    std::ifstream file;
-    file.open(scratchFile);
-
+    std::ifstream file("scratch-data.txt");
     if(file.fail()){
-        std::cout << "Error opening file\n";
+        std::cerr << "Error opening file\n";
         return 1;
     }
 
-    std::string line;
-    while(!file.eof()){
-        std::getline(file, line);
-
-        //Everything before the ":" is irrelevant
-        int position = line.find(':'); //Recall that this is returning a size_t type
-        if(position == std::string::npos){
-            std::cout << "Error: No ':' found\n";
-            return 2;
-        }
-
-        line = line.substr(position + 1);
-
-        //Analyze the card
-        analyzeCard(line);
+    if(solutionPartOne(file) != 0){
+        std::cerr << "Error in Part 1\n";
+        file.close();
+        return 2;
     }
 
-    //Close your file
+    //Reset the file
+    file.clear();
+    file.seekg(0, std::ios::beg);
+    if(solutionPartTwo(file) != 0){
+        std::cerr << "Error in Part 2\n";
+        file.close();
+        return 3;
+    }
+
     file.close();
-
-    std::cout << "Point sum: " << pointSum << "\n";
-
     return 0;
 }
 
-//Best practice to PREVENT references from being modified
-void analyzeCard(const std::string& card){
+/**
+ * Solution for Part 1
+ * @param {std::ifstream&} file - The file to read from
+ * @return {int} - 0 if the solution ran successfully
+*/
+int solutionPartOne(std::ifstream& file){
+    int sum = 0;
+    std::string line;
+    while(std::getline(file, line)){
+        //Regex to format the line
+        std::regex pattern("\\s+");
+        line = std::regex_replace(line, pattern, " ");
 
-    //Create a map for each card
-    std::map<std::string, int> cardMap;
-    int cardPointValue = 0;
-    
-    std::string value;
-    std::istringstream token;
-    token.clear();
-    token.str(card);
+        int position = line.find(':');
+        if(position == std::string::npos){
+            std::cerr << "Error: No ':' found\n";
+            return 1;
+        }
+        line = line.substr(position+2);
 
-    //Keep tokenizing until there is nothing left
-    while(std::getline(token, value, ' ')){
-        if(value != ""){
-            if(value == "|"){
+        //Analyze the card
+        analyzeCard(line, sum);
+    }
+
+    std::cout << "The sum of all the cards is: " << sum << std::endl;
+    return 0;
+}
+
+
+/**
+ * Solution for Part 2
+ * @param {std::ifstream&} file - The file to read from
+ * @return {int} - 0 if the solution ran successfully
+*/
+int solutionPartTwo(std::ifstream& file){
+    int numCards = 0;
+
+    std::unordered_map<int, int> cardMap;
+    std::string line;
+    int cardNumber = 1;
+
+    while(std::getline(file, line)){
+        //Regex to format the line
+        std::regex pattern("\\s+");
+        line = std::regex_replace(line, pattern, " ");
+        cardMap[cardNumber]++;
+
+        //Now that we have begun our map we can analyze the card
+        std::unordered_set<std::string> winningSet;
+        int winningNumbers = 0;
+
+        //Tokenize the card
+        std::stringstream ss(line);
+        std::string token;
+        while(std::getline(ss, token, ' ')){
+            //Keep going until we hit the '|'
+            if(token == "|"){
                 break;
             }
-
-            cardMap.insert(std::pair<std::string, int>(value, 1));
+            winningSet.insert(token);
         }
 
+        //Now that we have the winning set we can analyze the rest of the card
+        while(std::getline(ss, token, ' ')){
+            if(winningSet.find(token) != winningSet.end()){
+                ++winningNumbers;
+            }
+        }
+        //Now that we have the number of winning numbers we need only see how many copies of our card exist
+        int numberOfCopies = cardMap[cardNumber];
+        for(int i = 0; i < numberOfCopies; i++){
+            for(int j = 1; j <= winningNumbers; j++){
+                cardMap[cardNumber+j]++;
+            }
+        }
+        cardNumber++;
     }
 
-    //Our map will be full
-    while(std::getline(token, value, ' ')){
-        if(value != ""){
-            auto keyValuepair = cardMap.find(value);
-            if(keyValuepair != cardMap.end()){
-                //The number exists
-                if(cardPointValue == 0){
-                    cardPointValue++;
-                }else{
-                    cardPointValue *= 2;
-                }
+    //Finally we count all the copies
+    for(const auto& card: cardMap){
+        if(card.first < cardNumber){
+            numCards += card.second;
+        }
+    }
+
+    std::cout << "The number of cards is: " << numCards << std::endl;
+    return 0;
+}
+
+
+/**
+ * Analyze the card
+ * @param {std::string&} card - The card to analyze
+ * @param {int&} sum -The running sum of all the cards
+*/
+void analyzeCard(std::string& card, int& sum){
+    std::unordered_set<std::string> winningSet;
+
+    int cardPointValue = 0;
+    //Tokenize the card
+    std::stringstream ss(card);
+    std::string token;
+    while(std::getline(ss, token, ' ')){
+        //Keep going until we hit the '|'
+        if(token == "|"){
+            break;
+        }
+        winningSet.insert(token);
+    }
+
+    //Now that we have the winning set, we can analyze the rest of the card
+    while(std::getline(ss, token, ' ')){
+        if(winningSet.find(token) != winningSet.end()){
+            if(cardPointValue == 0){
+                cardPointValue = 1;
+            }else{
+                cardPointValue *= 2;
             }
         }
     }
-    pointSum += cardPointValue;
 
+    //Finally we add to our global sum
+    sum += cardPointValue;
     return;
 }
