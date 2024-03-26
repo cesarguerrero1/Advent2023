@@ -1,6 +1,6 @@
 /**
  * Cesar Guerrero
- * 01/09/2024
+ * 03/26/2024
  * 
  * Day 1 - Trebuchet
  * 
@@ -14,7 +14,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <string>
 
 //Function Prototypes
 int solutionPartOne(std::ifstream& file);
