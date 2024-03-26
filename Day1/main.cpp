@@ -13,203 +13,250 @@
 */
 
 #include <iostream>
-#include <string>
 #include <fstream>
-std::string calfile = "calibration.txt";
+#include <sstream>
 
-//Function prototypes
-int get_raw_num(std::string, int);
-std::vector<int> get_word_num(std::string, int);
+//Function Prototypes
+int solutionPartOne(std::ifstream& file);
+int solutionPartTwo(std::ifstream& file);
+std::string findFirstWordNumber(const std::string& line, int currentNumIndex);
+std::string findLastWordNumber(const std::string& line, int currentNumIndex);
 
+/**
+ * Main function
+ * @return {int} - 0 if successful
+*/
 int main(){
 
-    std::ifstream file;
-    file.open(calfile);
-    //Best practice to always look for errors
+    //The calibration has a line consisting of numbers and words
+    std::ifstream file("calibration.txt");
     if(file.fail()){
-        std::cout << "Error opening file\n";
+        std::cerr << "Error opening file\n";
         return 1;
     }
 
-    //We need a way to store data from each line
-    std::string line;
-    std::string num;
+    if(solutionPartOne(file) != 0){
+        std::cerr << "Failed Part 1\n";
+        file.close();
+        return 2;
+    }
 
-    //We need a way to keep track of the first and and last numbers so we can short circuit the search
-    int firstPos;
-    int lastPos;
+    //Reset the file - We need to move the file pointer back to the beginning
+    file.clear();
+    file.seekg(0, std::ios::beg);
 
-    //We need a vector to hold our generated numbers
-    int sum = 0;
-
-    while(!file.eof()){
-        std::getline(file, line);
-        int lineSize = line.size();
-        std::vector<int> wordNumResponse; //This is used to store the response from the get_word_num function
-        int position;
-
-        //First check for first occurrence of raw integers
-        position = get_raw_num(line, 0);
-        if(position != -1){
-            if(position == 0){
-                //Since we found a raw integer at the beginning of the line we can short-circuit the search
-                num += line[position];
-            }else{
-                //Store the position of the first raw number occurrence so we can now check if it needs to be replaced by a word number
-                firstPos = position;
-                wordNumResponse = get_word_num(line, 0);
-                if(wordNumResponse[0] != -1 && wordNumResponse[0] < firstPos){
-                    num += std::to_string(wordNumResponse[1]);
-                }else{
-                    num += line[firstPos];
-                }
-            }
-
-            //We now shift to the last occurrence
-            position = get_raw_num(line, 1);
-            if(position == lineSize-1){
-                //We found a raw integer at the very end of the line therefore we can short-circuit the search
-                num += line[position];
-                sum += std::stoi(num);
-                num.clear();
-                continue;
-            }else{
-                //We need to check for the last occurrence of a word num as it could be after the last raw integer
-                lastPos = position;
-                wordNumResponse = get_word_num(line, 1);
-                if(wordNumResponse[0] != -1 && wordNumResponse[0] > lastPos){
-                    num += std::to_string(wordNumResponse[1]);
-                }else{
-                    num += line[lastPos];
-                }
-                sum += std::stoi(num);
-                num.clear();
-                continue;
-            }
-        }else{
-            //There are no raw integers so we only need to check for word numbers
-            wordNumResponse = get_word_num(line, 0);
-            if(wordNumResponse[0] != -1){
-                //There are word numbers so just add the first and last one
-                num += std::to_string(wordNumResponse[1]);
-                num += std::to_string(get_word_num(line, 1)[1]);
-                sum += std::stoi(num);
-                num.clear();
-            }
-        }
-
+    if(solutionPartTwo(file) != 0){
+        std::cerr << "Failed Part 2\n";
+        file.close();
+        return 3;
     }
 
     //Always close your files
     file.close();
-
-    //We now just need to sum up the numbers
-    std::cout << "Sum: " << sum << std::endl;
     return 0;
 }
 
 
 /**
- * This function will look for raw integers in a string and return either the first or last one
- * depending on the mode.
- * @param {std::string} line - The string to search
- * @param {int} mode - 0 for first, 1 for last
- * @return {int} - The first or last raw integer found.. Else -1 if none are found
+ * This runs the solution for Part 1 of Day 1
+ * @param {std::ifstream&} file - The file stream to read from
+ * @return {int} - 0 if successful
 */
-int get_raw_num(std::string line, int mode){
+int solutionPartOne(std::ifstream& file){
+    int sum = 0;
+    //We need to iterate over each line and parse it
+    std::string line;
+    std::string number;
 
-    //It turns out that the string library provides two good functions:
-    //.find_first_of() and .find_last_of()
-    std::string nums = "0123456789";
-    int position;
-    if(mode == 0){
-        position = line.find_first_of(nums);
-    }else{
-        position = line.find_last_of(nums);
+    while(std::getline(file, line)){
+        //We can use .find() to get the first number
+        int firstNumIndex = line.find_first_of("0123456789");
+        if(firstNumIndex == std::string::npos){
+            //This means no numbers exist so do nothing
+            continue;
+        }
+        //We don't have to worry about this every being invalid
+        int lastNumIndex = line.find_last_of("0123456789");
+        number += line[firstNumIndex];
+        number += line[lastNumIndex];
+        sum += std::stoi(number);
+        //We are reusing this variable so we need to clear it
+        number.clear();
     }
 
-    //Now we just need to check if we found a match
-    if(position != std::string::npos){
-        return position;
-    }else{
-        return -1;
-    }
-}
+    std::cout << "Sum: " << sum << "\n";
+    return 0;
+};
+
 
 /**
- * This function will look for word numbers in a string and return either the first or last one
- * depending on the mode.
- * @param {std::string} line - The string to search
- * @param {int} mode - 0 for first, 1 for last
- * @return {int} - The first or last word number found.. Else -1 if none are found
+ * This runs the solution for Part 2 of Day 1
+ * @param {std::ifstream&} file - The file stream to read from
+ * @return {int} - 0 if successful
 */
-std::vector<int> get_word_num(std::string line, int mode){
-
-    //To solve Part 2 we need to be able to analyze the words
-    std::vector<std::string> word_nums = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
-
-    int optimalPosition = -1;
-    int currentPosition;
-    int changeIndex = -1; //This will be used to keep track of which word number was used to find the optimal position
-
-    for(int i = 0; i < word_nums.size(); i++){
-        if(mode == 0){
-            //First occurrence
-            currentPosition = line.find(word_nums[i]);
-        }else{
-            //Last occurrence
-            currentPosition = line.rfind(word_nums[i]);
-        }
-        //Check that we found something and see if it now optimal
-        if(currentPosition == std::string::npos){
-            continue;
-        }
-
-        //If we are on our first iteration then we need to set optimal to the first position
-        if(optimalPosition == -1){
-            optimalPosition = currentPosition;
-            changeIndex = i;
-            continue;
-        }
-
-        //Based on the mode we need to check if the current position is optimal
-        if(mode == 0){
-            if(currentPosition < optimalPosition){
-                optimalPosition = currentPosition;
-                changeIndex = i;
+int solutionPartTwo(std::ifstream& file){
+    int sum = 0;
+    //Now that we have words we need to convert them to numbers
+    std::string line;
+    std::string number;
+    while(std::getline(file, line)){
+        //We are using a boolean to check if we have a word number or an integer
+        int firstNumIndex = line.find_first_of("123456789");
+        if(firstNumIndex == std::string::npos){
+            //No integers exist
+            std::string temp = findFirstWordNumber(line, -1);
+            if(temp == "-1"){
+                continue;
+            }else{
+                number += temp; 
             }
         }else{
-            if(currentPosition > optimalPosition){
-                optimalPosition = currentPosition;
-                changeIndex = i;
+            if(firstNumIndex == 0){
+                number += line[firstNumIndex];
+            }else{
+                //The word number may be before the integer
+                std::string temp = findFirstWordNumber(line, firstNumIndex);
+                if(temp != "-1"){
+                    number += temp;
+                }else{
+                    number += line[firstNumIndex];
+                }
+            }
+        }
+
+        //Now we need to find the last number
+        int lastNumIndex = line.find_last_of("123456789");
+        if(lastNumIndex == std::string::npos){
+            //No integers exist
+            std::string temp = findLastWordNumber(line, line.size());
+            //This will never be -1 because of our earlier logic check
+            number += temp;
+        }else{
+            if(lastNumIndex == line.size() - 1){
+                number += line[lastNumIndex];
+            }else{
+                //The word number may be after the integer
+                std::string temp = findLastWordNumber(line, lastNumIndex);
+                if(temp != "-1"){
+                    number += temp;
+                }else{
+                    number += line[lastNumIndex];
+                }
+            }
+        }
+        sum += std::stoi(number);
+        number.clear();
+    }
+
+    std::cout << "Sum: " << sum << "\n";
+    
+    return 0;
+};
+
+
+/**
+ * Given a line, finds the first word number if it exists and is lower than the currentNumIndex
+ * @param {const std::string&} line - The line to search
+ * @param {int} currentNumIndex - The current index of the number
+ * @return {std::string} - The number found if it exists and is lower than the currentNumIndex
+*/
+std::string findFirstWordNumber(const std::string& line, int currentNumIndex){
+    std::vector<std::string> wordNums = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
+    int wordIndex = -1;
+    for(int i = 0; i < wordNums.size(); i++){
+        int temp = line.find(wordNums[i]);
+        //If we find a valid word number and it is lower than the currentNumIndex then grab it
+        if(temp != std::string::npos){
+            if(currentNumIndex == -1){
+                //This means we haven't found a number yet so we just grab the first one
+                currentNumIndex = temp;
+                wordIndex = i;
+            }else{
+                if(temp < currentNumIndex){
+                    currentNumIndex = temp;
+                    wordIndex = i;
+                }
             }
         }
     }
 
-    //Since we are working with numbers we need to convert the word number to an integer
-    switch(changeIndex){
+    switch(wordIndex){
         case 0:
-            return {optimalPosition, 0};
+            return "1";
         case 1:
-            return {optimalPosition, 1};
+            return "2";
         case 2:
-            return {optimalPosition, 2};
+            return "3";
         case 3:
-            return {optimalPosition, 3};
+            return "4";
         case 4:
-            return {optimalPosition, 4};
+            return "5";
         case 5:
-            return {optimalPosition, 5};
+            return "6";
         case 6:
-            return {optimalPosition, 6};
+            return "7";
         case 7:
-            return {optimalPosition, 7};
+            return "8";
         case 8:
-            return {optimalPosition, 8};            
-        case 9:
-            return {optimalPosition, 9};
+            return "9";
         default:
-            return {-1, -1};
+            return "-1";
+    }
+}
+
+
+/**
+ * Given a line, finds the last word number if it exists and is higher than the currentNumIndex
+ * @param {const std::string&} line - The line to search
+ * @param {int} currentNumIndex - The current index of the number
+ * @return {std::string} - The number found if it exists and is higher than the currentNumIndex
+*/
+std::string findLastWordNumber(const std::string& line, int currentNumIndex){
+    std::vector<std::string> wordNums = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
+    int wordIndex = -1;
+    for(int i = 0; i < wordNums.size(); i++){
+        int temp = line.rfind(wordNums[i]);
+        if(temp != std::string::npos){
+            if(currentNumIndex == line.size()){
+                //This means we haven't found a number yet so we just grab the first one
+                currentNumIndex = temp;
+                wordIndex = i;
+            }else{
+                if(temp > currentNumIndex){
+                    currentNumIndex = temp;
+                    wordIndex = i;
+                }
+            }
+        }
     }
 
+    switch(wordIndex){
+        case 0:
+            return "1";
+        case 1:
+            return "2";
+        case 2:
+            return "3";
+        case 3:
+            return "4";
+        case 4:
+            return "5";
+        case 5:
+            return "6";
+        case 6:
+            return "7";
+        case 7:
+            return "8";
+        case 8:
+            return "9";
+        default:
+            return "-1";
+    }
 }
+
+
+
+
+
+
+

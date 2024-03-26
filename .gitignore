@@ -1,6 +1,6 @@
 .vscode
-/*/CMakeFiles
-/*/cmake_install.cmake
-/*/CMakeCache.txt
-/*/Makefile
-/*/main
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+main
