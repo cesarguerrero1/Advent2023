@@ -1,11 +1,10 @@
 /**
  * Cesar Guerrero
- * 01/23/2024
+ * 03/26/2024
  * 
  * Day 3: Advent Calendar 2023
  * 
- * 
- * NOTE: My idea to solving this puzzle is just thinking about the problem as a giant multi-dimensional array. For instance take the following example:
+ * NOTE: My idea to solving this puzzle is just thinking about the problem as a giant multi-dimensional array.
  * 
 */
 
@@ -14,14 +13,136 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <utility>
 
-//File
-std::string puzzleFile = "engine-numbers.txt";
+//Function prototypes
+int solutionPartOne(const std::vector<std::string>& engineRows, const std::map<std::pair<int,int>, std::vector<int>>& starMap);
+int solutionPartTwo();
 
-//2D array of the engine schematic
-std::vector<std::string> engineRows;
-std::map<std::pair<int, int>, std::vector<int>> starMap; //I knew I would eventually needs to use pairs... STL has everything it seems
+/**
+ * Entry point into the program
+ * @return 0 if the program ran successfully
+ */
+int main(){
 
+    //Open the file
+    std::ifstream file("engine-numbers.txt");
+    if(file.fail()){
+        std::cout << "Error opening file\n";
+        return 1;
+    }
+
+    //We want to vectorize the file
+    std::vector<std::string> engineRows;
+    std::string line;
+    while(std::getline(file, line)){
+        engineRows.push_back(line);
+    }
+
+    //NOTE: You can't use a pair as a key in a map
+    std::map<std::pair<int,int>, std::vector<int>> starMap; 
+
+    //Loop over all the rows and find the asterisks
+    for(int i = 0; i < engineRows.size(); i++){
+        std::string currentRow = engineRows[i];
+        for(int j = 0; j < currentRow.length(); j++){
+            char currentChar = currentRow[j];
+            //If we find an asterisk put it in the map
+            if(currentChar == '*'){
+                starMap[std::make_pair(i,j)] = std::vector<int>();
+            }
+        }
+    }
+
+    if(solutionPartOne(engineRows, starMap) != 0){
+        std::cerr << "Failed Part 1\n";
+        file.close();
+        return 2;
+    }
+
+    if(solutionPartTwo() != 0){
+        std::cerr << "Failed Part 2\n";
+        file.close();
+        return 3;
+    }
+
+
+
+    file.close();
+    return 0;
+}
+
+
+/**
+ * This runs the solution for part one
+ * @param {std::vector<std::string>&} engineRows - The rows of the engine
+ * @param {std::map<std::pair<int,int>, std::vector<int>>&} starMap - The map of stars
+ * @return {int} - 0 if successful
+*/
+int solutionPartOne(const std::vector<std::string>& engineRows, const std::map<std::pair<int,int>, std::vector<int>>& starMap){
+
+    //Iterate over the rows
+    for(auto& row : engineRows){
+
+        //Iterate over the characters in the row to find the numbers
+        for(int i = 0; i < row.length(); i++){
+            //If we find a digit we need to fully traverse the number to examine its bounds
+            char character = row[i];
+            //If the character is a digit we need to find the bounds of the number
+            if(character >= 48 && character <= 57){
+                int left = i;
+                int right = i;
+                ++i;
+                //Keep going until we traverse the entirety
+                while(i < row.length()){
+                    if(row[i] < 48 || row[i] > 57){
+                        right = i-1;
+                        break;
+                    }
+                    ++i;
+                }
+                //Check if we reached the end of the line
+                if(i == row.length()){
+                    right = i-1;
+                }
+
+                //Now that we have the bounds of the number we need to check the neighbors
+                int number = std::stoi(row.substr(left, right-left+1));
+
+                
+
+                //Check the neighbors
+                /*
+                    //Check if any of the neighbors are asterisks
+                    alterMap(number, line, left, right, currentRow-1, currentRow+1);
+                
+                    if(checkNeighbors(line, left, right, currentRow-1, currentRow+1)){
+                        //.substr(startIndex, lengthToTraverse);
+                        sum += number;
+                    }
+                    continue;
+                */
+            }
+        }
+    }
+
+
+    return 0;
+}
+
+
+/**
+ * This runs the solution for part two
+ * @return {int} - 0 if successful
+*/
+int solutionPartTwo(){
+    return 0;
+}
+
+
+
+
+/*
 //Function protopypes
 void analyzeLine(const std::string&);
 bool checkNeighbors(const std::string&, int, int, int, int);
@@ -36,36 +157,6 @@ static int currentRow = 0;
 //Entry point for the program
 int main(){
 
-    //Open the file
-    std::ifstream file;
-    file.open(puzzleFile);
-
-    if(file.fail()){
-        std::cout << "Error opening file\n";
-        return 1;
-    }
-
-    std::string line;
-    while(!file.eof()){
-        //Append our file lines to the vector
-        std::getline(file, line);
-        engineRows.push_back(line);
-    }
-
-    //Loop over all the rows and find the asterisks
-    for(int i = 0; i < engineRows.size(); i++){
-        std::string currentRow = engineRows[i];
-        for(int j = 0; j < currentRow.length(); j++){
-            char currentChar = currentRow[j];
-            if(currentChar == '*'){
-                //There will be no risk of duplicate keys
-                std::vector<int> neighbors;
-                auto coordinates = std::make_pair(i, j);
-                starMap.insert(std::make_pair(coordinates, neighbors));
-            }
-        }
-    }
-
     //Now that we have stored all of our rows, we can start analyzing them
     for(int i = 0 ; i < engineRows.size(); i++){
         analyzeLine(engineRows[i]);
@@ -73,6 +164,9 @@ int main(){
     }
     
     std::cout << "The sum of all valid numbers is: " << sum << "\n";
+
+
+
 
     //Loop over our staMap and find the stars with only two numbers associated with them
     for(auto& star : starMap){
@@ -86,53 +180,6 @@ int main(){
     //Always close your files!
     file.close();
     return sum;
-}
-
-
-//Best practice dictates that anytime we pass by reference we make it a const to prevent side effects
-void analyzeLine(const std::string& line){
-
-    int lineSize = line.length();
-    int index = 0;
-
-    while(index < lineSize){
-        char currentChar = line[index];
-        //If we run into a number we need to define the bounds so we know what to check
-        int left = index;
-        int right = index;
-        if(currentChar >= 48 && currentChar <= 57){
-            index++;
-            while(true){
-                currentChar = line[index];
-                if(currentChar < 48 || currentChar > 57){
-                    //We have found the end of the number
-                    right = index-1;
-                    break;
-                }
-                index++;
-                //We need to check if we have reached the end of the line
-                if(index == lineSize){
-                    right = index-1;
-                    break;
-                }
-            }
-
-            //We have found the bounds of the number so we need to check the neighbors
-            int number = std::stoi(line.substr(left, right-left+1));
-
-            //Check if any of the neighbors are asterisks
-            alterMap(number, line, left, right, currentRow-1, currentRow+1);
-        
-            if(checkNeighbors(line, left, right, currentRow-1, currentRow+1)){
-                //.substr(startIndex, lengthToTraverse);
-                sum += number;
-            }
-            continue;
-        }
-        index++;
-    }
-
-    return;
 }
 
 //This function will check the neighbors of the number
@@ -253,3 +300,4 @@ void alterMap(int number, const std::string& line, int leftBound, int rightBound
 
     return;
 }
+*/
