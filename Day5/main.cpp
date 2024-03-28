@@ -23,16 +23,25 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <deque>
 #include <unordered_map>
 #include <map>
-#include <utility>
+
+//Global Processing Vector
+std::vector<std::string> conversions = {"seed-to-soil", "soil-to-fertilizer", "fertilizer-to-water", "water-to-light", "light-to-temperature", "temperature-to-humidity", "humidity-to-location"};
+//We are going to use a struct to represent the inervals
+struct interval{
+    long start;
+    long end;
+    int conversionNum;
+    interval(long start, long end, int conversionNum): start(start), end(end), conversionNum(conversionNum){};
+};
 
 //Function Prototypes
 int establishMaps(std::ifstream& file, std::unordered_map<std::string, std::map<long, std::pair<long, long>>>& conversionMap);
 int solutionPartOne(const std::vector<long>& seeds, std::unordered_map<std::string, std::map<long, std::pair<long, long>>>& conversionMap);
+int solutionPartTwo(std::deque<interval>& intervals, std::unordered_map<std::string, std::map<long, std::pair<long, long>>>& conversionMap);
 
-//Global Processing Vector
-const std::vector<std::string> mapNames = {"seed-to-soil", "soil-to-fertilizer", "fertilizer-to-water", "water-to-light", "light-to-temperature", "temperature-to-humidity", "humidity-to-location"};
 
 /**
  * Entry point into the program
@@ -47,24 +56,24 @@ int main(){
         return 1;
     }
 
-    //This map will handle our entire mapping scheme
+    //This map will handle our entire mapping scheme -- std::map<source, std::pair<destination, length>>
     std::unordered_map<std::string, std::map<long, std::pair<long, long>>> conversionMap;
 
     //Parse our seeds
     std::string line;
     std::getline(file, line);
-    int colon = line.find(':');
-    if(colon == std::string::npos){
+    int colonLocation = line.find(':');
+    if(colonLocation == std::string::npos){
         std::cerr << "Error in file format\n";
         file.close();
         return 2;
     }
 
     //Now we need to tokenize the seeds
-    line = line.substr(colon+2);
+    std::vector<long> seeds;
+    line = line.substr(colonLocation+2);
     std::stringstream ss(line);
     std::string seed;
-    std::vector<long> seeds;
     while(std::getline(ss, seed, ' ')){
         seeds.push_back(std::stol(seed));
     }
@@ -85,9 +94,22 @@ int main(){
         return 4;
     }
 
+    std::deque<interval> intervals;
+    for(int i = 0; i < seeds.size()-1; i += 2){
+        intervals.push_back(interval(seeds[i], seeds[i] + seeds[i+1], 0));
+    }
+
+    //Now that we have our intervals 
+    if(solutionPartTwo(intervals, conversionMap) != 0){
+        std::cerr << "Error in Part Two\n";
+        file.close();
+        return 5;
+    }
+
     file.close();
     return 0;
 }
+
 
 /**
  * Establishes the maps that we will use to process the seeds
@@ -97,12 +119,11 @@ int main(){
 */
 int establishMaps(std::ifstream& file, std::unordered_map<std::string, std::map<long, std::pair<long, long>>>& conversionMap){
     std::string line;
-    for(auto& mapName: mapNames){
-        conversionMap[mapName] = std::map<long, std::pair<long, long>>();
+    for(auto& conversion: conversions){
+        conversionMap[conversion] = std::map<long, std::pair<long, long>>();
 
-        //We need to process each section of data
         while(std::getline(file, line)){
-            if(line.find(mapName) != std::string::npos){
+            if(line.find(conversion) != std::string::npos){
                 //Don't process the section name
                 continue;
             }else if(line.length() == 0){
@@ -115,9 +136,8 @@ int establishMaps(std::ifstream& file, std::unordered_map<std::string, std::map<
             long destination, source, length;
             //Since we know the format of the data, we can just extract it
             ss >> destination >> source >> length;
-
             //Insert the data into the map
-            conversionMap[mapName][source] = std::make_pair(destination, length);
+            conversionMap[conversion][source] = std::make_pair(destination, length);
         }
     }
 
@@ -132,17 +152,17 @@ int establishMaps(std::ifstream& file, std::unordered_map<std::string, std::map<
 */
 int solutionPartOne(const std::vector<long>& seeds, std::unordered_map<std::string, std::map<long, std::pair<long, long>>>& conversionMap){
     long lowestLocationNumber = -1;
+
+    //We are going to process each seed
     for(auto& seed: seeds){
-        //Now we need to process in order
         long sourceValue = seed;
-        for(auto& mapName : mapNames){
-            auto& processMap = conversionMap[mapName];
+        //For each seed we traverse the conversions
+        for(auto& conversion: conversions){
+            auto& processMap = conversionMap[conversion];
             //We now need to process the map
             for(auto& pair : processMap){
-                long lowerBound = pair.first;
-                long upperBound = lowerBound + pair.second.second - 1;
-                if(sourceValue >= lowerBound && sourceValue <= upperBound){
-                    sourceValue = pair.second.first + (sourceValue - lowerBound);
+                if(sourceValue >= pair.first && sourceValue <= pair.first + pair.second.second-1){
+                    sourceValue = pair.second.first + (sourceValue - pair.first);
                     break;
                 }
             }
@@ -157,5 +177,72 @@ int solutionPartOne(const std::vector<long>& seeds, std::unordered_map<std::stri
 
     std::cout << "Lowest Location Number: " << lowestLocationNumber << "\n";
 
+    return 0;
+}
+
+
+/**
+ * Solve part two of the problem
+ * @param {std::deque<interval>&} intervals - The intervals that we will process
+ * @param {std::unordered_map<std::string, std::map<long, std::pair<long, long>>>&} conversionMap - The map that we will use to process each seed
+ * @return {int} - 0 if the function ran successfully
+*/
+int solutionPartTwo(std::deque<interval>& intervals, std::unordered_map<std::string, std::map<long, std::pair<long, long>>>& conversionMap){
+    long lowestLocationNumber = -1;
+
+    //The idea is that we are going to process each interval
+    while(intervals.size() != 0){
+        //Pop the front
+        auto currentInterval = intervals.front();
+        intervals.pop_front();
+
+        //Now attempt to process this interval
+        while(currentInterval.conversionNum < conversions.size()){
+            //Grab the conversion map for this interval
+            auto& processMap = conversionMap[conversions[currentInterval.conversionNum]];
+
+            for(auto& pair: processMap){
+                long destination = pair.second.first;
+                long range = pair.second.second;
+                long source = pair.first;
+
+                if(currentInterval.start >= source+range || currentInterval.end <= source){
+                    //The interval is not contained within the pair
+                    continue;
+                }else if(currentInterval.start >= source && currentInterval.end <= source + range){
+                    //The interval is fully contained so transform it
+                    currentInterval.start = destination + (currentInterval.start-source);
+                    currentInterval.end = destination + (currentInterval.end-source);
+                    break;
+                }else if(currentInterval.start < source && currentInterval.end-1 >= source){
+                    //The interval is partiall contained BUT we need to see if there are 3 intervals
+                    intervals.push_back(interval(currentInterval.start, source, currentInterval.conversionNum));
+                    currentInterval.start = source;
+                    //Check if our end overruns the range
+                    if(currentInterval.end > source + range){
+                        //we need another interval for the portion that exceeds the range
+                        intervals.push_back(interval(source+range, currentInterval.end, currentInterval.conversionNum));
+                        currentInterval.end = source + range;
+                    };
+                    //Now just process the current interval
+                    currentInterval.start = destination + (currentInterval.start-source);
+                    currentInterval.end = destination + (currentInterval.end-source);
+                    break;                    
+                }
+            }
+            //Always increment the conversion number
+            currentInterval.conversionNum++;
+        }
+
+        //Since the current interval has now been fully processed we only care about the smallest location
+        if(lowestLocationNumber == -1){
+            lowestLocationNumber = currentInterval.start;
+        }else{
+            lowestLocationNumber = std::min(lowestLocationNumber, currentInterval.start);
+        }
+    }
+
+
+    std::cout << "Lowest Location Number: " << lowestLocationNumber << "\n";
     return 0;
 }
