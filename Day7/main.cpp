@@ -240,7 +240,6 @@ int solutionPartTwo(std::vector<hand>& hands){
  * @param {hand&} h - The hand to assign a rank to
 */
 void assignJokerHandRank(hand& h){
-
     //As before we are going to go from best hand to worst hand - However now need to account for Jokers
     int sameKindCount = 0;
     int pairCount = 0;
@@ -257,11 +256,15 @@ void assignJokerHandRank(hand& h){
     }
 
     if(sameKindCount == 4){
-        //Joker can make 4 of a kind into 5 of a kind
-        if(h.cardMap['J'] == 1){
+        if(h.cardMap['J'] == 4){
             h.handRank = 6;
         }else{
-            h.handRank = 5;
+            if(h.cardMap['J'] > 0){
+                h.handRank = 6;
+            }else{
+                h.handRank = 5;
+            
+            }
         }
         return;
     }
@@ -281,7 +284,6 @@ void assignJokerHandRank(hand& h){
             }else if(h.cardMap['J'] == 2){
                 //This becomes 5 of a kind
                 h.handRank = 6;
-                return;
             }else{
                 //This becomes 4 of a kind
                 h.handRank = 5;
