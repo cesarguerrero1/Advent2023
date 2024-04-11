@@ -26,6 +26,10 @@ int main(){
 
     //Input is maps of how to navigate the desert - left/right instructions, network of labeled nodes
     std::fstream file("input.txt");
+    if(file.fail()){
+        std::cerr << "Failed to open file\n";
+        return 1;
+    }
     std::string line;
 
     //We know the first line is the instructions
@@ -51,12 +55,12 @@ int main(){
     }
     if(solutionPartOne(instructions, directionsMap) != 0){
         std::cout << "Failed Part One\n";
-        return 1;
+        return 2;
     }
 
     if(solutionPartTwo(instructions, directionsMap) != 0){
         std::cout << "Failed Part Two\n";
-        return 2;
+        return 3;
     }
 
 
